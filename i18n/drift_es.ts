@@ -230,7 +230,7 @@
     </message>
     <message>
         <source>Let an assistant on this device edit this project until you turn it off or quit.</source>
-        <translation>Deja que un asistente en este dispositivo edite este proyecto hasta que lo desactives o cierres.</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Turn this on, then copy the setup for Cursor or Claude and paste it into that app.</source>
@@ -242,7 +242,7 @@
     </message>
     <message>
         <source>Listening on %1</source>
-        <translation>Escuchando en %1</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>New key</source>
@@ -360,11 +360,11 @@
     </message>
     <message>
         <source>Market</source>
-        <translation>Mercado</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Stock photos, video and audio</source>
-        <translation>Fotos, video y audio de archivo</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Text</source>
@@ -404,7 +404,7 @@
     </message>
     <message>
         <source>Saved stacks of effects to drop on a clip</source>
-        <translation>Colecciones de efectos guardadas para aplicar a un clip</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Scenes</source>
@@ -412,7 +412,7 @@
     </message>
     <message>
         <source>Jump between the sections of this edit</source>
-        <translation>Salta entre las secciones de esta edición</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Masks</source>
@@ -443,7 +443,7 @@
     </message>
     <message>
         <source>Tap a clip to edit it</source>
-        <translation>Toca un clip para editarlo</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Add to timeline</source>
@@ -469,11 +469,11 @@
     </message>
     <message>
         <source>Curve</source>
-        <translation>Curva</translation>
+        <translation type="unfinished">Curva</translation>
     </message>
     <message>
         <source>Replace</source>
-        <translation>Reemplazar</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Delete</source>
@@ -481,7 +481,7 @@
     </message>
     <message>
         <source>Split</source>
-        <translation>Dividir</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Duplicate</source>
@@ -497,7 +497,7 @@
     </message>
     <message>
         <source>Tap a clip to edit</source>
-        <translation>Toca un clip para editar</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -523,23 +523,23 @@
     <name>AndroidDownloadsSheet</name>
     <message>
         <source>Downloads</source>
-        <translation>Descargas</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Nothing downloading right now.</source>
-        <translation>No hay descargas en este momento.</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Cancel download</source>
-        <translation>Cancelar descarga</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Try again</source>
-        <translation>Intentar de nuevo</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Clear finished</source>
-        <translation>Borrar completadas</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -597,7 +597,7 @@
     </message>
     <message>
         <source>Market</source>
-        <translation>Mercado</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Me</source>
@@ -683,7 +683,7 @@
     </message>
     <message>
         <source>Try again</source>
-        <translation type="unfinished">Intentar de nuevo</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Pick another source</source>
@@ -718,15 +718,15 @@
     </message>
     <message>
         <source>That share had no link in it.</source>
-        <translation>Ese recurso compartido no tenía ningún enlace.</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Links can’t be opened in this build.</source>
-        <translation>Los enlaces no se pueden abrir en esta versión.</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>That download is no longer in your media.</source>
-        <translation>Esa descarga ya no está en tu contenido multimedia.</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Open Project</source>
@@ -785,11 +785,11 @@
     <name>AndroidMarket</name>
     <message>
         <source>Market</source>
-        <translation type="unfinished">Mercado</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Downloads</source>
-        <translation type="unfinished">Descargas</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -894,6 +894,10 @@
     </message>
     <message>
         <source>Rotate</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save keeps the original video and stores this framing.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3677,6 +3681,18 @@
         <source>Clip orientation set to %1°</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Frame video</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Video framing saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Frame source video</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>AssetCategoryChips</name>
@@ -3827,7 +3843,7 @@
     </message>
     <message>
         <source>Market</source>
-        <translation type="unfinished">Mercado</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Text</source>
@@ -4666,7 +4682,7 @@
     <name>DownloadsWindow</name>
     <message>
         <source>Downloads</source>
-        <translation type="unfinished">Descargas</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
         <source>%n active</source>
@@ -4685,7 +4701,7 @@
     </message>
     <message>
         <source>Clear finished</source>
-        <translation type="unfinished">Borrar completadas</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Nothing downloaded yet</source>
@@ -4697,7 +4713,7 @@
     </message>
     <message>
         <source>Try again</source>
-        <translation type="unfinished">Intentar de nuevo</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Cancel</source>
@@ -4787,7 +4803,7 @@
     </message>
     <message>
         <source>Downloads</source>
-        <translation type="unfinished">Descargas</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Video</source>
@@ -5719,6 +5735,34 @@
         <source>File</source>
         <translation>Archivo</translation>
     </message>
+    <message>
+        <source>Original dimensions: %1 × %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Edit source frame…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Source frame box</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Width</source>
+        <translation type="unfinished">Anchura</translation>
+    </message>
+    <message>
+        <source>Height</source>
+        <translation type="unfinished">Altura</translation>
+    </message>
+    <message>
+        <source>Unlock source frame ratio</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lock source frame ratio</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>GradientStopEditor</name>
@@ -6323,7 +6367,7 @@
     </message>
     <message>
         <source>Try again</source>
-        <translation type="unfinished">Intentar de nuevo</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Nothing listed</source>
@@ -6417,7 +6461,7 @@
     </message>
     <message>
         <source>Cancel download</source>
-        <translation type="unfinished">Cancelar descarga</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Retry</source>
@@ -6864,10 +6908,6 @@
         <translation>Arrastra el marco para recortar el lienzo. Guardar reemplaza este elemento en la papelera de medios — luego arrástralo a la línea de tiempo.</translation>
     </message>
     <message>
-        <source>Play, crop, and drag the ends to keep a range. Save replaces this item in the media bin — then drag it onto the timeline.</source>
-        <translation>Reproduce, recorta el lienzo y arrastra los extremos para conservar un rango. Guardar reemplaza este elemento en la papelera de medios — luego arrástralo a la línea de tiempo.</translation>
-    </message>
-    <message>
         <source>Pause</source>
         <translation>Pausa</translation>
     </message>
@@ -6913,6 +6953,22 @@
     </message>
     <message>
         <source>Rotate</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Drag the frame to choose the area to use. The original video stays available for reframing.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Original: %1×%2 • Frame: %3×%4</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save keeps the original video and stores this framing.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Adjust the frame or Reset to restore the full image.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -11633,7 +11689,7 @@ Si la reproducción se corta, prueba con otra opción.</translation>
     </message>
     <message>
         <source>Appearance</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Aspecto</translation>
     </message>
     <message>
         <source>Recolour the whole drawing, or one element the file names by id. Drawing-wide colours replace paints the file already has; outlines drawn with no fill stay hollow.</source>
