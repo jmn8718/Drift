@@ -60,6 +60,7 @@
 #include "engine/FaceSwapSource.h"
 #include "engine/FaceTrack.h"
 #include "engine/ModelAsset.h"
+#include "engine/ModelClipTransform.h"
 #include "engine/ReverseProxyCache.h"
 #include "engine/VaapiZeroCopy.h"
 #include "engine/VectorClipRenderer.h"
@@ -738,6 +739,10 @@ AppController::AppController(AssetLibrary *assetLibrary, QObject *parent)
     m_mcp = std::make_unique<drift::mcp::McpServer>(this);
     connect(m_mcp.get(), &drift::mcp::McpServer::runningChanged, this,
             &AppController::mcpRunningChanged);
+    // The token, URL and setup snippets all notify on mcpRunningChanged; a rotation
+    // changes the same set.
+    connect(m_mcp.get(), &drift::mcp::McpServer::tokenChanged, this,
+            &AppController::mcpRunningChanged);
     connect(m_mcp.get(), &drift::mcp::McpServer::errorChanged, this, &AppController::mcpErrorChanged);
     connect(&m_undoStack, &QUndoStack::indexChanged, this, &AppController::undoStackChanged);
     connect(&m_undoStack, &QUndoStack::indexChanged, this, [this] {
@@ -1224,62 +1229,36 @@ bool trackAllowsTransitions(drift::TrackType type)
 
 void syncOverlapTransitions(drift::Project &project)
 {
+    constexpr drift::TimeUs kDefaultAdjacentDurationUs = drift::secondsToUs(0.5);
+
     for (drift::Track &track : project.tracks()) {
         if (!trackAllowsTransitions(track.type))
             continue;
 
-        QList<int> order;
-        order.reserve(track.clips.size());
-        for (int i = 0; i < track.clips.size(); ++i)
-            order.append(i);
-        std::sort(order.begin(), order.end(), [&track](int a, int b) {
-            const drift::Clip &ca = track.clips.at(a);
-            const drift::Clip &cb = track.clips.at(b);
-            if (ca.timelineStart != cb.timelineStart)
-                return ca.timelineStart < cb.timelineStart;
-            return ca.id < cb.id;
-        });
-
-        for (int i = 0; i + 1 < order.size(); ++i) {
-            const int fromIndex = order.at(i);
-            const int toIndex = order.at(i + 1);
-            const drift::Clip &fromClip = track.clips.at(fromIndex);
-            const drift::Clip &toClip = track.clips.at(toIndex);
-            if (!drift::clipsPhysicallyOverlap(fromClip, toClip))
-                continue;
-
-            const drift::TimeUs overlapUs = drift::physicalOverlapDurationUs(fromClip, toClip);
-            if (overlapUs < drift::secondsToUs(0.05))
-                continue;
-
-            drift::Transition *existing = nullptr;
-            for (drift::Transition &transition : track.transitions) {
-                if (transition.fromClipId == fromClip.id && transition.toClipId == toClip.id) {
-                    existing = &transition;
-                    break;
-                }
-            }
-
-            if (existing) {
-                existing->durationUs = overlapUs;
-                continue;
-            }
-
-            drift::Transition transition;
-            transition.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-            transition.fromClipId = fromClip.id;
-            transition.toClipId = toClip.id;
-            transition.kindId = QStringLiteral("crossfade");
-            transition.durationUs = overlapUs;
-            track.transitions.append(transition);
-        }
-
+        // Overlap is stacking, not an implicit fade. Only keep and retune transitions the
+        // user (or MCP) actually added.
         for (int i = track.transitions.size() - 1; i >= 0; --i) {
-            const drift::Transition &transition = track.transitions.at(i);
+            drift::Transition &transition = track.transitions[i];
             const drift::Clip *fromClip = drift::clipById(track, transition.fromClipId);
             const drift::Clip *toClip = drift::clipById(track, transition.toClipId);
-            if (!fromClip || !toClip || !drift::clipsEligibleForTransition(*fromClip, *toClip))
+            if (!fromClip || !toClip || !drift::clipsEligibleForTransition(*fromClip, *toClip)) {
                 track.transitions.removeAt(i);
+                continue;
+            }
+
+            if (drift::clipsPhysicallyOverlap(*fromClip, *toClip)) {
+                const drift::TimeUs overlapUs = drift::physicalOverlapDurationUs(*fromClip, *toClip);
+                if (overlapUs > 0)
+                    transition.durationUs = overlapUs;
+                continue;
+            }
+
+            // Adjacent: a leftover overlap duration can be longer than either clip, which
+            // would paint a virtual window from before t=0. Explicit 0.75s fades stay put.
+            const drift::TimeUs shorter =
+                qMin(fromClip->timelineDuration, toClip->timelineDuration);
+            if (transition.durationUs > shorter)
+                transition.durationUs = qMin(kDefaultAdjacentDurationUs, shorter);
         }
     }
 }
@@ -2082,6 +2061,40 @@ QVariantMap vectorSourceToMap(const drift::VectorSource &v, drift::TimeUs timeli
     return map;
 }
 
+QVariantMap model3dSourceToMap(const drift::Model3dSource &m, drift::TimeUs timelineStart)
+{
+    QVariantList animations;
+    for (const drift::Model3dAnimationRef &a : m.animations) {
+        animations.append(QVariantMap{
+            {QStringLiteral("name"), a.name},
+            {QStringLiteral("durationSec"), drift::usToSeconds(a.durationUs)},
+        });
+    }
+    QVariantMap keyframes;
+    for (auto it = m.keyframes.cbegin(); it != m.keyframes.cend(); ++it) {
+        if (!it->isEmpty())
+            keyframes.insert(it.key(), keyframeTrackToMap(it.value(), timelineStart));
+    }
+    QVariantMap map{
+        {QStringLiteral("path"), m.path},
+        {QStringLiteral("animations"), animations},
+        {QStringLiteral("animation"), m.animation},
+        {QStringLiteral("loop"), drift::vectorLoopToString(m.loop)},
+        {QStringLiteral("offset"), drift::usToSeconds(m.startOffsetUs)},
+    };
+    for (const QString &key : drift::model3dKeyframeProperties()) {
+        double v = 0.0;
+        drift::model3dScalar(m, key, &v);
+        map.insert(key, v);
+    }
+    if (!keyframes.isEmpty())
+        map.insert(QStringLiteral("keyframes"), keyframes);
+    const QString warning = drift::modelAssetWarning(m.path);
+    if (!warning.isEmpty())
+        map.insert(QStringLiteral("warning"), warning);
+    return map;
+}
+
 // The type a slot name takes on this document: a Lottie slot the animation declares, or one of
 // the reserved svg.* override keys whose element the SVG carries. Empty error on success.
 QString resolveVectorSlotType(const drift::vec::InspectReport &report, drift::VectorKind kind, const QString &name,
@@ -2176,6 +2189,60 @@ void applyVectorOptions(drift::Clip &clip, const QVariantMap &opts)
         v.startOffsetUs = drift::secondsToUs(opts.value(QStringLiteral("offset")).toDouble());
     if (opts.contains(QStringLiteral("name")) && !opts.value(QStringLiteral("name")).toString().isEmpty())
         clip.name = opts.value(QStringLiteral("name")).toString();
+}
+
+// Non-keyed model options plus the pose/light statics as plain writes (keyframed ones go
+// through setClipKeyframe). Returns the keys it did not understand.
+QStringList applyModel3dOptions(drift::Clip &clip, const QVariantMap &opts)
+{
+    drift::Model3dSource &m = clip.model3d;
+    QStringList unknown;
+    for (auto it = opts.cbegin(); it != opts.cend(); ++it) {
+        const QString &key = it.key();
+        if (key == QStringLiteral("animation")) {
+            m.animation = qBound(0, it->toInt(), qMax(0, m.animations.size() - 1));
+        } else if (key == QStringLiteral("loop")) {
+            m.loop = drift::vectorLoopFromString(it->toString().toLower());
+        } else if (key == QStringLiteral("offset")) {
+            m.startOffsetUs = drift::secondsToUs(it->toDouble());
+        } else if (key == QStringLiteral("name")) {
+            if (!it->toString().isEmpty())
+                clip.name = it->toString();
+        } else if (!drift::setModel3dScalar(m, key, it->toDouble())) {
+            unknown.append(key);
+        }
+    }
+    return unknown;
+}
+
+QVariantMap inspectModel3dPath(const QString &path)
+{
+    const auto asset = drift::loadModelAssetCached(path);
+    if (!asset) {
+        QString error = drift::modelAssetWarning(path);
+        if (error.isEmpty())
+            error = QStringLiteral("could not load model");
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), error}};
+    }
+    QVariantList animations;
+    for (const drift::ModelAnimationInfo &info : asset->animations) {
+        animations.append(QVariantMap{
+            {QStringLiteral("name"), info.name},
+            {QStringLiteral("durationSec"), drift::usToSeconds(info.durationUs)},
+        });
+    }
+    QVariantMap out{
+        {QStringLiteral("ok"), true},
+        {QStringLiteral("path"), path},
+        {QStringLiteral("animations"), animations},
+        {QStringLiteral("vertexCount"), asset->vertexCount()},
+        {QStringLiteral("primitiveCount"), asset->primitives.size()},
+        {QStringLiteral("materialCount"), asset->materials.size()},
+        {QStringLiteral("textureCount"), asset->images.size()},
+    };
+    if (!asset->warning.isEmpty())
+        out.insert(QStringLiteral("warning"), asset->warning);
+    return out;
 }
 
 // Parses an agent-supplied value against the slot's declared type. Colours take "#rrggbb",
@@ -2397,7 +2464,8 @@ bool isSyntheticTimelineClip(drift::ClipType type)
 {
     return type == drift::ClipType::Text || type == drift::ClipType::Subtitle
            || type == drift::ClipType::Shape || type == drift::ClipType::Image
-           || type == drift::ClipType::Vector || type == drift::ClipType::Adjustment;
+           || type == drift::ClipType::Vector || type == drift::ClipType::Model3d
+           || type == drift::ClipType::Adjustment;
 }
 
 drift::TimeUs syntheticClipMaxDurationUs()
@@ -2414,7 +2482,7 @@ void syncSyntheticSourceRange(drift::Clip &clip)
 bool clipAcceptsPreviewTransform(const drift::Clip &clip)
 {
     return clip.type == drift::ClipType::Shape || clip.type == drift::ClipType::Image
-           || clip.type == drift::ClipType::Vector
+           || clip.type == drift::ClipType::Vector || clip.type == drift::ClipType::Model3d
            || clip.type == drift::ClipType::Text || clip.type == drift::ClipType::Subtitle
            || clip.type == drift::ClipType::Video;
 }
@@ -2546,6 +2614,28 @@ bool looksLikeVectorProp(const QString &prop)
     return drift::vectorSlotScalar(probe, prop.mid(7), &value);
 }
 
+// A model pose/light scalar is addressed as "model3d.<key>" ("model3d.rotY", "model3d.scale").
+bool parseModel3dProp(const drift::Clip &clip, const QString &prop, QString *key)
+{
+    if (clip.type != drift::ClipType::Model3d || !prop.startsWith(QLatin1String("model3d.")))
+        return false;
+    const QString candidate = prop.mid(8);
+    double probe = 0.0;
+    if (!drift::model3dScalar(clip.model3d, candidate, &probe))
+        return false;
+    *key = candidate;
+    return true;
+}
+
+bool looksLikeModel3dProp(const QString &prop)
+{
+    if (!prop.startsWith(QLatin1String("model3d.")))
+        return false;
+    drift::Model3dSource probe;
+    double value = 0.0;
+    return drift::model3dScalar(probe, prop.mid(8), &value);
+}
+
 drift::KeyframeTrack<double> *transformTrackForProp(drift::Clip &clip, const QString &prop)
 {
     if (prop == QStringLiteral("opacity"))
@@ -2598,6 +2688,13 @@ drift::KeyframeTrack<double> *keyframeTrackForProp(drift::Clip &clip, const QStr
         const auto it = clip.vector.keyframes.find(vectorKey);
         return it == clip.vector.keyframes.end() ? nullptr : &it.value();
     }
+    QString modelKey;
+    if (parseModel3dProp(clip, prop, &modelKey)) {
+        if (createIfMissing)
+            return &clip.model3d.keyframes[modelKey];
+        const auto it = clip.model3d.keyframes.find(modelKey);
+        return it == clip.model3d.keyframes.end() ? nullptr : &it.value();
+    }
 
     int effectIndex = -1;
     QString paramKey;
@@ -2639,7 +2736,8 @@ bool isKnownKeyframeProp(const QString &prop)
     QString maskKey;
     if (parseMaskProp(prop, &maskKey))
         return true;
-    if (looksLikeTextProp(prop) || looksLikeShapeProp(prop) || looksLikeVectorProp(prop))
+    if (looksLikeTextProp(prop) || looksLikeShapeProp(prop) || looksLikeVectorProp(prop)
+        || looksLikeModel3dProp(prop))
         return true;
     drift::Clip probe;
     return transformTrackForProp(probe, prop) != nullptr;
@@ -2656,6 +2754,7 @@ QString normalizeKeyframeProp(const QString &prop)
     const QString trimmed = prop.trimmed();
     return trimmed.startsWith(QLatin1String("fx.")) || trimmed.startsWith(QLatin1String("text."))
                    || trimmed.startsWith(QLatin1String("shape.")) || trimmed.startsWith(QLatin1String("vector."))
+                   || trimmed.startsWith(QLatin1String("model3d."))
                ? trimmed
                : trimmed.toLower();
 }
@@ -2772,6 +2871,17 @@ bool writeClipPropValue(drift::Clip &clip, const QString &prop, drift::TimeUs re
         if (!writeKeyframeValue(clip.vector.keyframes[vectorKey], relative, value, autoKey, force))
             return false;
         drift::setVectorSlotScalar(clip.vector, vectorKey, value);
+        return true;
+    }
+    QString modelKey;
+    if (parseModel3dProp(clip, prop, &modelKey)) {
+        const auto existing = clip.model3d.keyframes.constFind(modelKey);
+        const bool keyed = existing != clip.model3d.keyframes.constEnd() && !existing->isEmpty();
+        if (!keyed && !force && !autoKey)
+            return drift::setModel3dScalar(clip.model3d, modelKey, value);
+        if (!writeKeyframeValue(clip.model3d.keyframes[modelKey], relative, value, autoKey, force))
+            return false;
+        drift::setModel3dScalar(clip.model3d, modelKey, value);
         return true;
     }
 
@@ -3046,10 +3156,31 @@ void fitClipLayoutToCanvas(drift::Clip &clip, int mediaW, int mediaH, int canvas
     setClipLayoutPixels(clip, 0, 0, mediaW * scale, mediaH * scale);
 }
 
-// A bin asset of kind vector is a Lottie .json on disk; the clip carries it by path and the
-// probe fills size, fps, duration and hash so the renderer and the inspector have them.
-void attachVectorSource(drift::Clip &clip)
+// Fills what the inspector and the overlay need from the .glb (animation list, rest bounds) so
+// neither ever parses on the GUI thread; the loader's cache makes this a hit after the first.
+void probeModel3dSource(drift::Model3dSource &source)
 {
+    source.animations.clear();
+    source.aabbMin = {};
+    source.aabbMax = {};
+    const auto asset = drift::loadModelAssetCached(source.path);
+    if (!asset)
+        return;
+    for (const drift::ModelAnimationInfo &info : asset->animations)
+        source.animations.append({info.name, info.durationUs});
+    drift::modelClipBounds(*asset, &source.aabbMin, &source.aabbMax);
+    source.animation = qBound(0, source.animation, qMax(0, source.animations.size() - 1));
+}
+
+// A bin asset of kind vector is a Lottie .json on disk and one of kind model3d a .glb; the clip
+// carries either by path and the probe fills what the renderer and the inspector need.
+void attachAssetSource(drift::Clip &clip)
+{
+    if (clip.type == drift::ClipType::Model3d) {
+        clip.model3d.path = clip.path;
+        probeModel3dSource(clip.model3d);
+        return;
+    }
     if (clip.type != drift::ClipType::Vector)
         return;
     clip.vector.path = clip.path;
@@ -3840,6 +3971,8 @@ QVariantMap AppController::clipToMap(const drift::Clip &clip, const drift::Clip 
     };
     if (clip.type == drift::ClipType::Vector)
         map.insert(QStringLiteral("vector"), vectorSourceToMap(clip.vector, clip.timelineStart));
+    if (clip.type == drift::ClipType::Model3d)
+        map.insert(QStringLiteral("model3d"), model3dSourceToMap(clip.model3d, clip.timelineStart));
     return map;
 }
 
@@ -5717,7 +5850,7 @@ void AppController::addClipFromAsset(int assetIndex)
     clip.type = clipType;
     clip.name = asset.value(QStringLiteral("name")).toString();
     clip.path = asset.value(QStringLiteral("path")).toString();
-    attachVectorSource(clip);
+    attachAssetSource(clip);
     clip.thumbnailPath = thumbnailPath;
     clip.filmstripPath = filmstripPath;
     clip.timelineStart = start;
@@ -5787,7 +5920,7 @@ void AppController::addClipsFromAssets(const QStringList &assetIds)
         clip.type = clipType;
         clip.name = asset.value(QStringLiteral("name")).toString();
         clip.path = asset.value(QStringLiteral("path")).toString();
-        attachVectorSource(clip);
+        attachAssetSource(clip);
         clip.thumbnailPath = thumbnailPath;
         clip.filmstripPath = filmstripPath;
         clip.timelineStart = start;
@@ -5875,7 +6008,7 @@ void AppController::addClipFromAssetOnNewTrackAt(int assetIndex, int insertIndex
     clip.type = clipType;
     clip.name = asset.value(QStringLiteral("name")).toString();
     clip.path = asset.value(QStringLiteral("path")).toString();
-    attachVectorSource(clip);
+    attachAssetSource(clip);
     clip.thumbnailPath = thumbnailPath;
     clip.filmstripPath = filmstripPath;
     clip.timelineStart = start;
@@ -5926,7 +6059,7 @@ void AppController::addClipFromAssetAt(int assetIndex, int trackIndex, double at
     clip.type = clipType;
     clip.name = asset.value(QStringLiteral("name")).toString();
     clip.path = asset.value(QStringLiteral("path")).toString();
-    attachVectorSource(clip);
+    attachAssetSource(clip);
     clip.thumbnailPath = thumbnailPath;
     clip.filmstripPath = filmstripPath;
     clip.timelineStart = start;
@@ -11440,7 +11573,7 @@ QVariantList AppController::previewClipsAtPlayhead() const
             const double h = clipTransformValue(clip.transformH, relative, static_cast<double>(canvasHeight));
             const double rotation = clipTransformValue(clip.rotation, relative, 0.0);
 
-            out.append(QVariantMap{
+            QVariantMap entry{
                 {QStringLiteral("track"), trackIndex},
                 {QStringLiteral("clip"), clipIndex},
                 {QStringLiteral("kind"), drift::clipTypeToString(clip.type)},
@@ -11453,7 +11586,29 @@ QVariantList AppController::previewClipsAtPlayhead() const
                 {QStringLiteral("rotation"), rotation},
                 {QStringLiteral("canvasWidth"), canvasWidth},
                 {QStringLiteral("canvasHeight"), canvasHeight},
-            });
+            };
+            if (clip.type == drift::ClipType::Model3d) {
+                // The layer is the whole canvas; the box the overlay shows is the model's
+                // projected rest bounds, and anchorX/Y is what previewSetClipPosition takes.
+                const drift::Model3dSource resolved =
+                    clip.model3d.isAnimated() ? clip.model3d.resolvedAt(relative) : clip.model3d;
+                const double cx = 0.5 + x / canvasWidth;
+                const double cy = 0.5 + y / canvasHeight;
+                QRectF box(cx - 0.05, cy - 0.05, 0.1, 0.1);
+                if (resolved.hasAabb()) {
+                    box = drift::modelClipScreenRect(
+                        drift::modelClipParamsFromSource(resolved, cx, cy), resolved.aabbMin,
+                        resolved.aabbMax, double(canvasHeight) / double(canvasWidth));
+                }
+                entry.insert(QStringLiteral("anchorX"), x);
+                entry.insert(QStringLiteral("anchorY"), y);
+                entry.insert(QStringLiteral("x"), box.x() * canvasWidth);
+                entry.insert(QStringLiteral("y"), box.y() * canvasHeight);
+                entry.insert(QStringLiteral("width"), box.width() * canvasWidth);
+                entry.insert(QStringLiteral("height"), box.height() * canvasHeight);
+                entry.insert(QStringLiteral("rotation"), 0.0);
+            }
+            out.append(entry);
         }
     }
     return out;
@@ -11755,6 +11910,9 @@ void AppController::previewSetClipSize(int trackIndex, int clipIndex, double wid
         return;
 
     drift::Clip &clip = track.clips[clipIndex];
+    // A model clip is placed by its camera; its box has no size or spin of its own.
+    if (clip.type == drift::ClipType::Model3d)
+        return;
     const drift::TimeUs relative = qMax<drift::TimeUs>(0, m_playheadUs - clip.timelineStart);
     const bool wroteW =
         writeKeyframeValue(clip.transformW, relative, qMax(1.0, widthPixels), m_autoKeyEnabled, false);
@@ -11782,6 +11940,9 @@ void AppController::previewSetClipRect(int trackIndex, int clipIndex, double xPi
         return;
 
     drift::Clip &clip = track.clips[clipIndex];
+    // A model clip is placed by its camera; its box has no size or spin of its own.
+    if (clip.type == drift::ClipType::Model3d)
+        return;
     const drift::TimeUs relative = qMax<drift::TimeUs>(0, m_playheadUs - clip.timelineStart);
     bool wrote = false;
     wrote = writeKeyframeValue(clip.transformX, relative, xPixels, m_autoKeyEnabled, false) || wrote;
@@ -11811,6 +11972,9 @@ void AppController::previewSetClipRotation(int trackIndex, int clipIndex, double
         return;
 
     drift::Clip &clip = track.clips[clipIndex];
+    // A model clip is placed by its camera; its box has no size or spin of its own.
+    if (clip.type == drift::ClipType::Model3d)
+        return;
     const drift::TimeUs relative = qMax<drift::TimeUs>(0, m_playheadUs - clip.timelineStart);
     if (!writeKeyframeValue(clip.rotation, relative, degrees, m_autoKeyEnabled, false)) {
         emit transformBlocked(tr("Turn on Auto keyframes to rotate this"));
@@ -13795,6 +13959,151 @@ QString AppController::vectorSourceText(int trackIndex, int clipIndex) const
         drift::vec::vectorSourceBytes(m_project.tracks().at(trackIndex).clips.at(clipIndex).vector));
 }
 
+QVariantMap AppController::inspectModel3d(const QString &path) const
+{
+    if (path.isEmpty() || !QFileInfo::exists(path))
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), QStringLiteral("file not found")}};
+    return inspectModel3dPath(path);
+}
+
+QVariantMap AppController::inspectModel3dClip(int trackIndex, int clipIndex) const
+{
+    if (!isValidClipIndex(trackIndex, clipIndex)
+        || m_project.tracks().at(trackIndex).clips.at(clipIndex).type != drift::ClipType::Model3d) {
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), QStringLiteral("not a 3D model clip")}};
+    }
+    const drift::Clip &clip = m_project.tracks().at(trackIndex).clips.at(clipIndex);
+    QVariantMap out = inspectModel3dPath(clip.model3d.path);
+    out.insert(QStringLiteral("model3d"), model3dSourceToMap(clip.model3d, clip.timelineStart));
+    return out;
+}
+
+QVariantMap AppController::addModel3dClip(const QString &path, int trackIndex, double atSeconds,
+                                          const QVariantMap &opts)
+{
+    if (path.isEmpty() || !QFileInfo::exists(path))
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), QStringLiteral("file not found")}};
+    if (!AssetLibrary::isModelPath(path))
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), QStringLiteral("only .glb files are supported")}};
+    drift::Model3dSource model;
+    model.path = QFileInfo(path).absoluteFilePath();
+    probeModel3dSource(model);
+    if (!model.hasAabb()) {
+        QString error = drift::modelAssetWarning(model.path);
+        if (error.isEmpty())
+            error = QStringLiteral("could not load model");
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), error}};
+    }
+
+    const drift::Project before = m_project;
+    int target = trackIndex;
+    if (target < 0 || target >= m_project.tracks().size()
+        || !m_project.tracks().at(target).allowsClipType(drift::ClipType::Model3d)) {
+        target = drift::ensureTrackForClipType(m_project, drift::ClipType::Model3d, true);
+    }
+    if (target < 0)
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), QStringLiteral("no graphic track")}};
+
+    drift::TimeUs duration =
+        model.animationDurationUs() > 0 ? model.animationDurationUs() : drift::kImageClipDurationUs;
+    if (opts.value(QStringLiteral("duration")).toDouble() > 0.0)
+        duration = drift::secondsToUs(opts.value(QStringLiteral("duration")).toDouble());
+    duration = qMax(duration, drift::kMinClipDurationUs);
+
+    drift::Track &track = m_project.tracks()[target];
+    const drift::TimeUs startUs = atSeconds < 0.0 ? m_playheadUs : drift::secondsToUs(atSeconds);
+    const drift::TimeUs start = drift::resolveClipStart(m_project, track, -1, startUs, duration,
+                                                        m_snapEnabled, m_playheadUs);
+
+    drift::Clip clip;
+    clip.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    clip.type = drift::ClipType::Model3d;
+    clip.path = model.path;
+    clip.model3d = model;
+    clip.name = QFileInfo(model.path).completeBaseName();
+    clip.timelineStart = start;
+    clip.timelineDuration = duration;
+    clip.srcIn = 0;
+    clip.srcOut = duration;
+    QVariantMap options = opts;
+    options.remove(QStringLiteral("duration"));
+    const QStringList unknown = applyModel3dOptions(clip, options);
+    fitClipLayoutToCanvas(clip, 0, 0, m_project.width(), m_project.height());
+
+    track.clips.append(clip);
+    const int newClipIndex = track.clips.size() - 1;
+    pushProjectEdit(before, tr("3D model added"));
+    finishEdit(tr("3D model added"));
+    selectClip(target, newClipIndex);
+
+    QVariantMap out = inspectModel3dPath(clip.model3d.path);
+    out.insert(QStringLiteral("id"), clip.id);
+    out.insert(QStringLiteral("track"), target);
+    out.insert(QStringLiteral("index"), newClipIndex);
+    out.insert(QStringLiteral("model3d"), model3dSourceToMap(clip.model3d, clip.timelineStart));
+    if (!unknown.isEmpty())
+        out.insert(QStringLiteral("unknownOptions"), unknown);
+    return out;
+}
+
+QVariantMap AppController::setModel3dSource(int trackIndex, int clipIndex, const QString &path,
+                                            const QVariantMap &opts)
+{
+    if (!isValidClipIndex(trackIndex, clipIndex)
+        || m_project.tracks().at(trackIndex).clips.at(clipIndex).type != drift::ClipType::Model3d)
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), QStringLiteral("not a 3D model clip")}};
+    if (path.isEmpty() || !QFileInfo::exists(path))
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), QStringLiteral("file not found")}};
+    if (!AssetLibrary::isModelPath(path))
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), QStringLiteral("only .glb files are supported")}};
+
+    // Pose, light and keyframes carry over; the animation index is clamped to the new file.
+    drift::Model3dSource model = m_project.tracks().at(trackIndex).clips.at(clipIndex).model3d;
+    model.path = QFileInfo(path).absoluteFilePath();
+    probeModel3dSource(model);
+    if (!model.hasAabb()) {
+        QString error = drift::modelAssetWarning(model.path);
+        if (error.isEmpty())
+            error = QStringLiteral("could not load model");
+        return {{QStringLiteral("ok"), false}, {QStringLiteral("error"), error}};
+    }
+
+    const drift::Project before = m_project;
+    drift::Clip &clip = m_project.tracks()[trackIndex].clips[clipIndex];
+    clip.path = model.path;
+    clip.model3d = model;
+    const QStringList unknown = applyModel3dOptions(clip, opts);
+    pushProjectEdit(before, tr("3D model replaced"));
+    finishEdit(tr("3D model replaced"));
+
+    QVariantMap out = inspectModel3dPath(clip.model3d.path);
+    out.insert(QStringLiteral("id"), clip.id);
+    out.insert(QStringLiteral("model3d"), model3dSourceToMap(clip.model3d, clip.timelineStart));
+    if (!unknown.isEmpty())
+        out.insert(QStringLiteral("unknownOptions"), unknown);
+    return out;
+}
+
+QString AppController::setModel3dOptions(int trackIndex, int clipIndex, const QVariantMap &opts)
+{
+    if (!isValidClipIndex(trackIndex, clipIndex)
+        || m_project.tracks().at(trackIndex).clips.at(clipIndex).type != drift::ClipType::Model3d)
+        return QStringLiteral("not a 3D model clip");
+    if (opts.isEmpty())
+        return QStringLiteral("nothing to change");
+    const drift::Project before = m_project;
+    const QStringList unknown = applyModel3dOptions(m_project.tracks()[trackIndex].clips[clipIndex], opts);
+    if (unknown.size() == opts.size()) {
+        m_project = before;
+        return QStringLiteral("unknown option: %1").arg(unknown.join(QStringLiteral(", ")));
+    }
+    pushProjectEdit(before, tr("3D model options"));
+    finishEdit(tr("3D model options updated"));
+    if (!unknown.isEmpty())
+        return QStringLiteral("unknown option: %1").arg(unknown.join(QStringLiteral(", ")));
+    return {};
+}
+
 QVariantMap AppController::addVectorClip(const QString &source, int trackIndex, double atSeconds,
                                          const QVariantMap &opts)
 {
@@ -14388,18 +14697,6 @@ void AppController::removeTransition(int trackIndex, const QString &transitionId
                 clearTransitionSelection();
         }
 
-        // Physical overlaps auto-sync a crossfade; separate the clips so removal sticks.
-        drift::Clip *fromClip = nullptr;
-        drift::Clip *toClip = nullptr;
-        for (drift::Clip &clip : track.clips) {
-            if (clip.id == transition.fromClipId)
-                fromClip = &clip;
-            else if (clip.id == transition.toClipId)
-                toClip = &clip;
-        }
-        if (fromClip && toClip && drift::clipsPhysicallyOverlap(*fromClip, *toClip))
-            toClip->timelineStart = fromClip->timelineEnd();
-
         track.transitions.removeAt(i);
         pushProjectEdit(before, tr("Remove transition"));
         finishEdit(tr("Transition removed"));
@@ -14828,6 +15125,9 @@ double AppController::propertyBaseValue(int trackIndex, int clipIndex, const QSt
             QString vectorKey;
             if (parseVectorProp(clip, prop, &vectorKey) && drift::vectorSlotScalar(clip.vector, vectorKey, &scalar))
                 return scalar;
+            QString modelKey;
+            if (parseModel3dProp(clip, prop, &modelKey) && drift::model3dScalar(clip.model3d, modelKey, &scalar))
+                return scalar;
         }
     }
     return fallback;
@@ -14986,6 +15286,13 @@ QStringList AppController::clipAnimatedProperties(int trackIndex, int clipIndex)
         for (auto it = clip.vector.keyframes.constBegin(); it != clip.vector.keyframes.constEnd(); ++it) {
             if (!it->isEmpty())
                 out.append(QStringLiteral("vector.%1").arg(it.key()));
+        }
+    }
+    if (clip.type == drift::ClipType::Model3d) {
+        for (const QString &key : drift::model3dKeyframeProperties()) {
+            const auto it = clip.model3d.keyframes.constFind(key);
+            if (it != clip.model3d.keyframes.constEnd() && !it->isEmpty())
+                out.append(QStringLiteral("model3d.%1").arg(key));
         }
     }
     return out;
@@ -19590,6 +19897,11 @@ void AppController::remapProjectPaths(const QHash<QString, QString> &remap)
                 // restoreFilmstripsAfterLoad regenerate them for the new one.
                 clip.thumbnailPath.clear();
                 clip.filmstripPath.clear();
+                // The renderer reads the vector document via clip.vector, not clip.path.
+                if (clip.type == drift::ClipType::Vector && !clip.vector.isInline())
+                    clip.vector.path = clip.path;
+                if (clip.type == drift::ClipType::Model3d)
+                    clip.model3d.path = clip.path;
             }
         }
     }
@@ -20437,6 +20749,12 @@ void AppController::setMcpEnabled(bool enabled)
         m_mcp->start();
     else
         m_mcp->stop();
+}
+
+void AppController::rotateMcpToken()
+{
+    if (m_mcp)
+        m_mcp->rotateToken();
 }
 
 namespace {
@@ -24003,6 +24321,8 @@ QString AppController::keyframePropertyLabel(int trackIndex, int clipIndex, cons
         return drift::textKeyframeLabel(prop.mid(5), clip ? clip->textStyle : drift::TextStyle{});
     if (prop.startsWith(QLatin1String("shape.")))
         return drift::shapeKeyframeLabel(prop.mid(6), clip ? clip->shapeStyle : drift::ShapeStyle{});
+    if (prop.startsWith(QLatin1String("model3d.")))
+        return drift::model3dKeyframeLabel(prop.mid(8));
     if (prop.startsWith(QLatin1String("vector."))) {
         QString key = prop.mid(7);
         QString channel;
