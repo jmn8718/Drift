@@ -3671,6 +3671,8 @@
         <translation type="unfinished">
             <numerusform></numerusform>
         </translation>
+    </message>
+    <message>
         <source>Orientation changed</source>
         <translation>向きを変更しました</translation>
     </message>
