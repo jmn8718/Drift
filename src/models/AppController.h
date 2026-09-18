@@ -1953,6 +1953,15 @@ protected:
     // document is replaced, so the two paths cannot drift apart again.
     void resetSessionState();
 
+    // Every emit tracksChanged() must go through here instead: tracks() rebuilds the whole
+    // timeline into a deep QVariant tree, and a dozen-plus QML bindings across the app depend
+    // on it (TimelinePanel, PreviewPanel, MulticamWindow, the preview overlays, ...) — each one
+    // re-reads the property on every emission, so one edit was rebuilding and then destroying
+    // that whole tree once per binding. Caching the result and invalidating it here means only
+    // the first read after a real change pays for the rebuild; the rest share the same
+    // (implicitly shared) QVariantList until the next invalidation.
+    void notifyTracksChanged();
+
     QByteArray serializeProjectJson() const;
     bool applyProjectJson(const QByteArray &data, QString *error);
     // Bracket every loadProject()/loadProjectJson() call, sync or async, success or
@@ -2027,6 +2036,10 @@ protected:
     drift::Project m_project;
     drift::Project m_multicamBase;
     drift::Project m_multicamStaged;
+    // tracks()'s cache — see notifyTracksChanged(). mutable because tracks() is const;
+    // this is the property's own memoization, not project state.
+    mutable QVariantList m_tracksCache;
+    mutable bool m_tracksCacheValid = false;
     PlaybackEngine m_playback;
     // Only for its audioOutputsChanged signal — the sinks resolve devices themselves.
     QMediaDevices m_mediaDevices;
