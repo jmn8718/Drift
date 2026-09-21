@@ -3349,6 +3349,10 @@
         <translation>JSON do projeto salvo</translation>
     </message>
     <message>
+        <source>Still opening a project — try again in a moment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Couldn’t read %1: %2</source>
         <translation>Não foi possível ler %1: %2</translation>
     </message>
@@ -4736,10 +4740,6 @@
         <translation>Projeto do Drift (*.drift)</translation>
     </message>
     <message>
-        <source>Open Project</source>
-        <translation>Abrir projeto</translation>
-    </message>
-    <message>
         <source>Save Project</source>
         <translation>Salvar projeto</translation>
     </message>
@@ -5293,6 +5293,14 @@
         <translation>Limpar</translation>
     </message>
     <message>
+        <source>Pick %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Edit %1</source>
+        <translation type="unfinished">Editar %1</translation>
+    </message>
+    <message>
         <source>Paste effects</source>
         <translation>Colar efeitos</translation>
     </message>
@@ -5433,6 +5441,10 @@
     <message>
         <source>Video encoder</source>
         <translation>Codificador de vídeo</translation>
+    </message>
+    <message>
+        <source>Keeps a transparent canvas. Set the project background to Transparent so holes stay empty.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Constant Quality</source>
@@ -6177,6 +6189,18 @@
 </context>
 <context>
     <name>Main</name>
+    <message>
+        <source>Still opening a project — try again in a moment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Project</source>
+        <translation type="unfinished">Abrir projeto</translation>
+    </message>
+    <message>
+        <source>Project closed</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message>
         <source>Export finished.</source>
         <translation>Exportação concluída.</translation>
@@ -8332,6 +8356,10 @@ Se a reprodução travar, experimente outro.</translation>
         <source>Project properties…</source>
         <translation>Propriedades do projeto…</translation>
     </message>
+    <message>
+        <source>Close project</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>RecoveryDialog</name>
@@ -8760,6 +8788,10 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Blur</source>
         <translation type="unfinished">Desfoque</translation>
+    </message>
+    <message>
+        <source>Transparent</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Fill behind clips that don’t cover the whole screen</source>
@@ -9706,6 +9738,43 @@ Se a reprodução travar, experimente outro.</translation>
     <message>
         <source>Cancel</source>
         <translation>Cancelar</translation>
+    </message>
+</context>
+<context>
+    <name>StartScreen</name>
+    <message>
+        <source> (missing)</source>
+        <translation type="unfinished"> (não encontrado)</translation>
+    </message>
+    <message>
+        <source>This file has been moved or deleted:
+%1</source>
+        <translation type="unfinished">Este arquivo foi movido ou excluído:
+%1</translation>
+    </message>
+    <message>
+        <source>Remove from recents</source>
+        <translation type="unfinished">Remover dos recentes</translation>
+    </message>
+    <message>
+        <source>Create polished videos fast</source>
+        <translation type="unfinished">Crie vídeos profissionais rapidamente</translation>
+    </message>
+    <message>
+        <source>New Project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Project…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recent Projects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing here yet — projects you save will show up in this list.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

@@ -3349,6 +3349,10 @@
         <translation>ව්‍යාපෘති JSON සුරකින ලදී</translation>
     </message>
     <message>
+        <source>Still opening a project — try again in a moment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Couldn’t read %1: %2</source>
         <translation>%1 කියවීමට නොහැකි විය: %2</translation>
     </message>
@@ -4736,10 +4740,6 @@
         <translation>Drift ව්‍යාපෘතිය (*.drift)</translation>
     </message>
     <message>
-        <source>Open Project</source>
-        <translation>ව්‍යාපෘතිය විවෘත කරන්න</translation>
-    </message>
-    <message>
         <source>Save Project</source>
         <translation>ව්‍යාපෘතිය සුරකින්න</translation>
     </message>
@@ -5293,6 +5293,14 @@
         <translation>හිස් කරන්න</translation>
     </message>
     <message>
+        <source>Pick %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Edit %1</source>
+        <translation type="unfinished">%1 සංස්කරණය කරන්න</translation>
+    </message>
+    <message>
         <source>Paste effects</source>
         <translation>ප්‍රයෝග අලවන්න</translation>
     </message>
@@ -5433,6 +5441,10 @@
     <message>
         <source>Video encoder</source>
         <translation>වීඩියෝ එන්කෝඩරය</translation>
+    </message>
+    <message>
+        <source>Keeps a transparent canvas. Set the project background to Transparent so holes stay empty.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Constant Quality</source>
@@ -6177,6 +6189,18 @@
 </context>
 <context>
     <name>Main</name>
+    <message>
+        <source>Still opening a project — try again in a moment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Project</source>
+        <translation type="unfinished">ව්‍යාපෘතිය විවෘත කරන්න</translation>
+    </message>
+    <message>
+        <source>Project closed</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message>
         <source>Export finished.</source>
         <translation>නිර්යාත කිරීම අවසන් විය.</translation>
@@ -8332,6 +8356,10 @@ If playback stutters, try another.</source>
         <source>Project properties…</source>
         <translation>ව්‍යාපෘති ගුණාංග…</translation>
     </message>
+    <message>
+        <source>Close project</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>RecoveryDialog</name>
@@ -8760,6 +8788,10 @@ If playback stutters, try another.</source>
     <message>
         <source>Blur</source>
         <translation type="unfinished">බොඳ කිරීම</translation>
+    </message>
+    <message>
+        <source>Transparent</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Fill behind clips that don’t cover the whole screen</source>
@@ -9706,6 +9738,43 @@ If playback stutters, try another.</source>
     <message>
         <source>Cancel</source>
         <translation>අවලංගු කරන්න</translation>
+    </message>
+</context>
+<context>
+    <name>StartScreen</name>
+    <message>
+        <source> (missing)</source>
+        <translation type="unfinished"> (නොමැත)</translation>
+    </message>
+    <message>
+        <source>This file has been moved or deleted:
+%1</source>
+        <translation type="unfinished">මෙම ගොනුව ගෙනයාම හෝ මකාදැමීම සිදු කර ඇත:
+%1</translation>
+    </message>
+    <message>
+        <source>Remove from recents</source>
+        <translation type="unfinished">මෑතකදී භාවිත කළ ඒවායින් ඉවත් කරන්න</translation>
+    </message>
+    <message>
+        <source>Create polished videos fast</source>
+        <translation type="unfinished">උසස් නිමාවකින් යුත් වීඩියෝ ඉක්මනින් සාදන්න</translation>
+    </message>
+    <message>
+        <source>New Project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Project…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recent Projects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing here yet — projects you save will show up in this list.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

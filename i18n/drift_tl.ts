@@ -3357,6 +3357,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Still opening a project — try again in a moment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Couldn’t read %1: %2</source>
         <translation>Hindi mabasa ang %1: %2</translation>
     </message>
@@ -4727,10 +4731,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Open Project</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Save Project</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5284,6 +5284,14 @@
         <translation>I-clear</translation>
     </message>
     <message>
+        <source>Pick %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Edit %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Paste effects</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5423,6 +5431,10 @@
     </message>
     <message>
         <source>Video encoder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keeps a transparent canvas. Set the project background to Transparent so holes stay empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -6168,6 +6180,18 @@
 </context>
 <context>
     <name>Main</name>
+    <message>
+        <source>Still opening a project — try again in a moment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Project closed</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message>
         <source>Export finished.</source>
         <translation type="unfinished"></translation>
@@ -8316,6 +8340,10 @@ If playback stutters, try another.</source>
         <source>Project properties…</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Close project</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>RecoveryDialog</name>
@@ -8744,6 +8772,10 @@ If playback stutters, try another.</source>
     <message>
         <source>Blur</source>
         <translation>Blur</translation>
+    </message>
+    <message>
+        <source>Transparent</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Fill behind clips that don’t cover the whole screen</source>
@@ -9690,6 +9722,42 @@ If playback stutters, try another.</source>
     <message>
         <source>Cancel</source>
         <translation>Kanselahin</translation>
+    </message>
+</context>
+<context>
+    <name>StartScreen</name>
+    <message>
+        <source> (missing)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This file has been moved or deleted:
+%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove from recents</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create polished videos fast</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Project…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recent Projects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing here yet — projects you save will show up in this list.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

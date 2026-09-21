@@ -34,6 +34,23 @@ Item {
 
     function refreshFields() {}
 
+    // Hue params (effectToMap's `hue` flag) are degrees on the keyframe stack but are picked as a
+    // colour. Only the hue survives the round trip: saturation and brightness are the shader's
+    // business (chroma key's Tolerance), so the swatch always shows the pure, fully saturated hue.
+    function hueToHex(hue) {
+        return Qt.hsva((((hue % 360) + 360) % 360) / 360, 1, 1, 1).toString()
+    }
+
+    // Returns NaN for a grey, which has no hue to key on — the caller keeps the current value
+    // rather than snapping the key to red.
+    function hexToHue(hex) {
+        // Qt.lighter(…, 1) is just string -> color; Qt.color() needs a newer Qt than we require.
+        const c = Qt.lighter(hex, 1)
+        if (c.hsvHue < 0)
+            return NaN
+        return c.hsvHue * 360
+    }
+
     Connections {
         target: EditorState
         function onSelectionChanged() { root.clipDataRevision++ }
@@ -529,6 +546,59 @@ Item {
                                     onClicked: EditorState.setEffectStringParam(
                                                    EditorState.selectedTrack, EditorState.selectedClip,
                                                    effectCard.index, paramRow.paramData.key, "")
+                                }
+                            }
+
+                            // Hue params get a swatch as well as the slider: picking the backdrop
+                            // colour is how a chroma key is actually set up, and the slider stays
+                            // for nudging and keyframing. The swatch writes the way the slider's
+                            // drag does (previewSetClipKeyframe, force off), not setClipKeyframe:
+                            // that one always drops a key at the playhead, so two picks at
+                            // different times would quietly animate the key colour.
+                            Row {
+                                id: hueRow
+                                visible: paramRow.paramData.type === "float"
+                                         && paramRow.paramData.hue === true
+                                width: parent.width
+                                spacing: 8
+
+                                function currentHue() {
+                                    const data = paramRow.paramData
+                                    const keys = (data.keyframes && data.keyframes.points) || []
+                                    const deg = keys.length === 0
+                                        ? Number(data.value)
+                                        : EditorState.propertyValueAt(
+                                              EditorState.selectedTrack, EditorState.selectedClip,
+                                              data.prop, EditorState.playheadSeconds, data.value)
+                                    return isNaN(deg) ? 0 : deg
+                                }
+
+                                Text {
+                                    width: parent.width - 148
+                                    elide: Text.ElideRight
+                                    text: qsTr("Pick %1").arg(paramRow.paramData.label)
+                                    color: Theme.mutedForeground
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeXs
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                ColorSwatchField {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    hex: root.hueToHex(hueRow.currentHue())
+                                    tooltip: qsTr("Choose %1").arg(paramRow.paramData.label)
+                                    onEdited: value => {
+                                        const deg = root.hexToHue(value)
+                                        // Grey has no hue; and the hex field re-emits its own
+                                        // value on focus-out, which must not become an undo step.
+                                        if (isNaN(deg) || Math.abs(deg - hueRow.currentHue()) < 0.01)
+                                            return
+                                        EditorState.beginPreviewDrag(
+                                            qsTr("Edit %1").arg(paramRow.paramData.label))
+                                        EditorState.previewSetClipKeyframe(
+                                            EditorState.selectedTrack, EditorState.selectedClip,
+                                            paramRow.paramData.prop, EditorState.playheadSeconds, deg)
+                                        EditorState.commitPreviewDrag()
+                                    }
                                 }
                             }
 

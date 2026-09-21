@@ -3349,6 +3349,10 @@
         <translation>JSON del progetto salvato</translation>
     </message>
     <message>
+        <source>Still opening a project — try again in a moment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Couldn’t read %1: %2</source>
         <translation>Impossibile leggere %1: %2</translation>
     </message>
@@ -4736,10 +4740,6 @@
         <translation>Progetto Drift (*.drift)</translation>
     </message>
     <message>
-        <source>Open Project</source>
-        <translation>Apri progetto</translation>
-    </message>
-    <message>
         <source>Save Project</source>
         <translation>Salva progetto</translation>
     </message>
@@ -5293,6 +5293,14 @@
         <translation>Cancella</translation>
     </message>
     <message>
+        <source>Pick %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Edit %1</source>
+        <translation type="unfinished">Modifica %1</translation>
+    </message>
+    <message>
         <source>Paste effects</source>
         <translation>Incolla effetti</translation>
     </message>
@@ -5433,6 +5441,10 @@
     <message>
         <source>Video encoder</source>
         <translation>Codificatore video</translation>
+    </message>
+    <message>
+        <source>Keeps a transparent canvas. Set the project background to Transparent so holes stay empty.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Constant Quality</source>
@@ -6177,6 +6189,18 @@
 </context>
 <context>
     <name>Main</name>
+    <message>
+        <source>Still opening a project — try again in a moment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Project</source>
+        <translation type="unfinished">Apri progetto</translation>
+    </message>
+    <message>
+        <source>Project closed</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message>
         <source>Export finished.</source>
         <translation>Esportazione completata.</translation>
@@ -8332,6 +8356,10 @@ Se la riproduzione va a scatti, prova un&apos;altra opzione.</translation>
         <source>Project properties…</source>
         <translation>Proprietà progetto…</translation>
     </message>
+    <message>
+        <source>Close project</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>RecoveryDialog</name>
@@ -8760,6 +8788,10 @@ Se la riproduzione va a scatti, prova un&apos;altra opzione.</translation>
     <message>
         <source>Blur</source>
         <translation type="unfinished">Sfocatura</translation>
+    </message>
+    <message>
+        <source>Transparent</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Fill behind clips that don’t cover the whole screen</source>
@@ -9706,6 +9738,43 @@ Se la riproduzione va a scatti, prova un&apos;altra opzione.</translation>
     <message>
         <source>Cancel</source>
         <translation>Annulla</translation>
+    </message>
+</context>
+<context>
+    <name>StartScreen</name>
+    <message>
+        <source> (missing)</source>
+        <translation type="unfinished"> (mancante)</translation>
+    </message>
+    <message>
+        <source>This file has been moved or deleted:
+%1</source>
+        <translation type="unfinished">Questo file è stato spostato o eliminato:
+%1</translation>
+    </message>
+    <message>
+        <source>Remove from recents</source>
+        <translation type="unfinished">Rimuovi dai recenti</translation>
+    </message>
+    <message>
+        <source>Create polished videos fast</source>
+        <translation type="unfinished">Crea video rifiniti rapidamente</translation>
+    </message>
+    <message>
+        <source>New Project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Project…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recent Projects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing here yet — projects you save will show up in this list.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

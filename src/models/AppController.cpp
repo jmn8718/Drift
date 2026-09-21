@@ -3001,6 +3001,15 @@ QVariantMap effectToMap(const drift::Effect &effect, int effectIndex, drift::Tim
                 if (!warn.isEmpty())
                     param.insert(QStringLiteral("warning"), warn);
             }
+            // A hue in degrees (chroma key's u_keyHue) is still a float on the keyframe stack, but
+            // nobody thinks of a backdrop as "121°" — the inspector adds a swatch that maps a
+            // picked colour onto it. Detected from the manifest's shape rather than a new param
+            // type, so the shader contract and the addon manifests stay as they are.
+            if (paramDef.type == drift::EffectParamType::Float && paramDef.min == 0.0
+                && paramDef.max == 360.0
+                && paramDef.key.endsWith(QLatin1String("hue"), Qt::CaseInsensitive)) {
+                param.insert(QStringLiteral("hue"), true);
+            }
             // Colours and file paths carry no `prop`: the keyframe stack is typed double.
             if (!paramDef.isColor() && !paramDef.isFilePath()) {
                 param.insert(QStringLiteral("prop"),
@@ -11751,8 +11760,7 @@ QVariantMap AppController::background() const
 {
     const drift::Background &bg = m_project.background();
     QVariantMap map;
-    map.insert(QStringLiteral("kind"),
-               bg.kind == drift::BackgroundKind::Blur ? QStringLiteral("blur") : QStringLiteral("color"));
+    map.insert(QStringLiteral("kind"), drift::backgroundKindToString(bg.kind));
     map.insert(QStringLiteral("color"), bg.color.name(QColor::HexArgb));
     map.insert(QStringLiteral("blurStrength"), bg.blurStrength);
     return map;
@@ -11762,9 +11770,7 @@ void AppController::setBackground(const QVariantMap &background)
 {
     drift::Background bg = m_project.background();
     if (background.contains(QStringLiteral("kind"))) {
-        bg.kind = background.value(QStringLiteral("kind")).toString() == QStringLiteral("blur")
-                      ? drift::BackgroundKind::Blur
-                      : drift::BackgroundKind::Color;
+        bg.kind = drift::backgroundKindFromString(background.value(QStringLiteral("kind")).toString());
     }
     if (background.contains(QStringLiteral("color"))) {
         const QColor color(background.value(QStringLiteral("color")).toString());
