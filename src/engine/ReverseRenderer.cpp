@@ -1,6 +1,7 @@
 #include "ReverseRenderer.h"
 
 #include "MediaProbe.h"
+#include "SwsColorRange.h"
 
 #include <QCoreApplication>
 #include <QFile>
@@ -160,14 +161,17 @@ bool ProxyEncoder::writeFrame(const AVFrame *src, int64_t pts, QString *errorOut
     }
 
     m_sws = sws_getCachedContext(m_sws, src->width, src->height,
-                                 static_cast<AVPixelFormat>(src->format), m_ctx->width,
-                                 m_ctx->height, AV_PIX_FMT_YUV420P, SWS_BILINEAR, nullptr, nullptr,
-                                 nullptr);
+                                 swsSourceFormat(static_cast<AVPixelFormat>(src->format)),
+                                 m_ctx->width, m_ctx->height, AV_PIX_FMT_YUV420P, SWS_BILINEAR,
+                                 nullptr, nullptr, nullptr);
     if (!m_sws) {
         if (errorOut)
             *errorOut = QCoreApplication::translate("ReverseRenderer", "Could not convert a frame for the reversed encoder");
         return false;
     }
+    // m_ctx->color_range was set from the source decoder's, so the proxy is encoded to keep
+    // the original range rather than converting it.
+    configureSwsRangePreserving(m_sws, src);
     if (av_frame_make_writable(m_frame) < 0) {
         if (errorOut)
             *errorOut = QCoreApplication::translate("ReverseRenderer", "Could not make the reversed frame writable");
